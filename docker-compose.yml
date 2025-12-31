@@ -1,7 +1,9 @@
+# Updated docker-compose.yml
+version: '3.8'
+
 services:
   # 1. The Database (TimescaleDB)
   db:
-    # CHANGED: 'timescaledb/timescaledb' -> 'timescale/timescaledb'
     image: timescale/timescaledb:latest-pg14
     container_name: tradeshift_db
     environment:
@@ -20,7 +22,21 @@ services:
     ports:
       - "6379:6379"
 
-  # 3. The Backend (FastAPI)
+  # 3. MinIO (Object Storage - S3 compatible) - NEW!
+  minio:
+    image: minio/minio
+    container_name: tradeshift_minio
+    ports:
+      - "9000:9000"   # S3 API port
+      - "9001:9001"   # Web UI port
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # 4. The Backend (FastAPI)
   backend:
     build: ./backend
     container_name: tradeshift_backend
@@ -31,8 +47,14 @@ services:
     depends_on:
       - db
       - redis
+      - minio  # Added minio dependency
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/tradeshift
+      - MINIO_ENDPOINT=http://minio:9000  # Added for internal access
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=market-data
 
 volumes:
   postgres_data:
+  minio_data:  # Added for MinIO
