@@ -21,18 +21,24 @@ services:
       - "6379:6379"
 
   # 3. The Backend (FastAPI)
-  backend:
-    build: ./backend
-    container_name: tradeshift_backend
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/tradeshift
+ backend:
+  build: ./backend
+  container_name: tradeshift_backend
+  volumes:
+    - ./backend:/app
+    - /path/to/your/parquet/files:/data  # ADD THIS LINE - mount your local data
+  ports:
+    - "8000:8000"
+  depends_on:
+    - db
+    - redis
+    - minio
+  environment:
+    - DATABASE_URL=postgresql://user:password@db:5432/tradeshift
+    - MINIO_ENDPOINT=http://minio:9000
+    - MINIO_ACCESS_KEY=minioadmin
+    - MINIO_SECRET_KEY=minioadmin
+    - MINIO_BUCKET=market-data
 
 volumes:
   postgres_data:
