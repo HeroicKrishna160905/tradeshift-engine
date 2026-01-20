@@ -1,8 +1,7 @@
-# Updated docker-compose.yml
 version: '3.8'
 
 services:
-  # 1. The Database (TimescaleDB)
+  # 1. The Database
   db:
     image: timescale/timescaledb:latest-pg14
     container_name: tradeshift_db
@@ -15,20 +14,20 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 2. The Cache (Redis)
+  # 2. The Cache
   redis:
     image: redis:alpine
     container_name: tradeshift_redis
     ports:
       - "6379:6379"
 
-  # 3. MinIO (Object Storage - S3 compatible) - NEW!
+  # 3. MinIO
   minio:
     image: minio/minio
     container_name: tradeshift_minio
     ports:
-      - "9000:9000"   # S3 API port
-      - "9001:9001"   # Web UI port
+      - "9000:9000"
+      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
@@ -36,7 +35,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
 
-  # 4. The Backend (FastAPI)
+  # 4. The Backend
   backend:
     build: ./backend
     container_name: tradeshift_backend
@@ -48,14 +47,39 @@ services:
     depends_on:
       - db
       - redis
-      - minio  # Added minio dependency
+      - minio
+      - rabbitmq
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/tradeshift
-      - MINIO_ENDPOINT=http://minio:9000  # Added for internal access
+      - MINIO_ENDPOINT=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=market-data
 
+  # 5. Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: tradeshift_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  # 6. The Frontend (MOVED UP HERE - Correct Location)
+  frontend:
+    build: ./frontend
+    container_name: tradeshift_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+# --- VOLUMES SECTION (MUST BE THE VERY LAST THING) ---
 volumes:
   postgres_data:
-  minio_data:  # Added for MinIO
+  minio_data:
+  rabbitmq_data:

@@ -81,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket):
             print(f"🚀 Streaming NIFTY Parquet at {speed}x")
 
             # Load the Parquet File
-            file_path = "data/NIFTY_50_1min.parquet"
+            file_path = "../data/NIFTY_50_1min.parquet"
             iterator = None
             using_real_data = False
             
