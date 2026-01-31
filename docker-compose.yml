@@ -78,6 +78,39 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
 
+  # 7. News Worker (Background scraper)
+  worker:
+    build: ./backend
+    container_name: tradeshift_worker
+    command: python workers/news_worker.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  # 8. Prometheus
+  prometheus:
+    image: prom/prometheus
+    container_name: tradeshift_prometheus
+    volumes:
+      - ./backend/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # 9. Grafana
+  grafana:
+    image: grafana/grafana
+    container_name: tradeshift_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
 # --- VOLUMES SECTION (MUST BE THE VERY LAST THING) ---
 volumes:
   postgres_data:
